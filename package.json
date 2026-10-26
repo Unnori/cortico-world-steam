@@ -1,0 +1,74 @@
+{
+  "name": "cortico-world-steam",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "读本机 Steam：现在在玩什么、每款玩多久、最近两周、成就进度、库里有什么，以及所在区的现价与历史最低价。只读本地记录，不改 Steam 任何文件。",
+  "keywords": [
+    "cortico-world",
+    "cortico",
+    "steam",
+    "gaming",
+    "playtime",
+    "achievements",
+    "price"
+  ],
+  "license": "MIT",
+  "author": "云纪",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Unnori/cortico-world-steam.git"
+  },
+  "homepage": "https://github.com/Unnori/cortico-world-steam#readme",
+  "bugs": {
+    "url": "https://github.com/Unnori/cortico-world-steam/issues"
+  },
+  "os": [
+    "win32"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.28.6",
+  "main": "./src/index.ts",
+  "cortico": {
+    "kind": "world",
+    "api": 6,
+    "displayName": "Steam",
+    "icon": "src/icon.svg",
+    "describe": "describe.json",
+    "webUiClient": "src/webui/client.js",
+    "tags": [
+      "game",
+      "internet",
+      "external-setup",
+      "sensitive-data"
+    ],
+    "locales": {
+      "zh": {
+        "displayName": "Steam",
+        "description": "读本机 Steam：账号昵称与在线状态、现在在玩什么、每款玩多久、最近两周玩了什么、库里有什么、成就打到哪了、所在区的现价与历史最低价、好友谁在线（默认关）。只读，不改 Steam 任何文件。"
+      },
+      "en": {
+        "displayName": "Steam",
+        "description": "Reads the local Steam client: account profile, what is being played, playtime, the last two weeks, the library, achievement progress, prices with regional historical lows, and friends online (opt-in). Read-only."
+      }
+    }
+  },
+  "files": [
+    "src",
+    "describe.json",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "cortico": "^0.2.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

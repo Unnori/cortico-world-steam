@@ -1,0 +1,240 @@
+{
+  "tools": [
+    {
+      "name": "steam_now",
+      "description": "Report what the person is playing on Steam right now: the game name, their total hours and achievement progress, plus a verdict saying how sure the evidence is. Returns \"not playing\" when nothing is running. Use it when the user asks \"我在玩什么\" or when you want to comment on their gaming.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "tags": [
+        "read"
+      ],
+      "summary": {
+        "zh": "看现在在玩什么 Steam 游戏,以及累计时长。",
+        "en": "Reports what Steam game is running right now."
+      }
+    },
+    {
+      "name": "steam_profile",
+      "description": "Report the Steam account this machine is signed in to: display name, SteamID64, online state, what they are playing, profile visibility, account creation date and the profile URL. The display name works offline from the local client; everything else needs an API key. Use it when the user asks \"你知道我的 Steam 叫什么吗\" or anything about their own account.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "tags": [
+        "read"
+      ],
+      "summary": {
+        "zh": "看这台机器登录的 Steam 账号:昵称、SteamID64、在线状态、资料可见性。",
+        "en": "Reports the signed-in Steam account: name, SteamID64, state and profile visibility."
+      }
+    },
+    {
+      "name": "steam_playtime",
+      "description": "Report playtime for one or more games: total hours, last played date, and whether installed. Accepts a game name fragment or an appid; empty lists the most-played games. Use it for \"我玩了多久X\" or \"我玩得最多的游戏\".",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "游戏名片段或 appid,多个用逗号分隔。留空=按总时长排前几名。"
+          },
+          "top": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10,
+            "description": "留空 query 时列几款。"
+          },
+          "since": {
+            "type": "string",
+            "description": "可选。只看这个时间之后玩过的:\"YYYY-MM-DD\"、\"HH:mm\",或 \"7d\" / \"12h\" / \"2w\" 这种相对写法(从现在往回数)。"
+          }
+        }
+      },
+      "tags": [
+        "read"
+      ],
+      "summary": {
+        "zh": "查某款或某些游戏的累计时长与最后游玩时间。",
+        "en": "Reports playtime and last-played for one or more games."
+      }
+    },
+    {
+      "name": "steam_library",
+      "description": "List the Steam library: installed games, games with playtime, or ones never touched. Use it for \"我库里有什么\" or \"有什么我没玩过的\".",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "filter": {
+            "type": "string",
+            "enum": [
+              "installed",
+              "played",
+              "untouched",
+              "all"
+            ],
+            "default": "installed",
+            "description": "installed=已安装、played=有游玩记录、untouched=一次没玩过、all=全部。"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 25
+          }
+        }
+      },
+      "tags": [
+        "read"
+      ],
+      "summary": {
+        "zh": "列 Steam 库:已安装、有游玩记录、或一次没玩过的。",
+        "en": "Lists the Steam library by installed / played / untouched."
+      }
+    },
+    {
+      "name": "steam_achievements",
+      "description": "Report achievement progress: overall completion, or one game's unlocked/total. With show_missing it names the achievements still locked (requires an API key) and marks how rare each one is globally. Use it for \"我成就怎么样\", \"X 的成就打到哪了\" or \"我还差哪几个成就\".",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "游戏名片段或 appid;留空=给整体统计 + 进度最高的几款。"
+          },
+          "show_missing": {
+            "type": "boolean",
+            "default": false,
+            "description": "true 时逐条列出还没拿到的成就名与全服完成率(要 API key;隐藏成就不会列出,避免剧透)。"
+          }
+        }
+      },
+      "tags": [
+        "read"
+      ],
+      "summary": {
+        "zh": "看成就进度:总览,或某一款的解锁情况;可逐条列出还差哪几个 + 全服完成率。",
+        "en": "Reports achievement progress overall or for one game, optionally naming what is still locked."
+      }
+    },
+    {
+      "name": "steam_recent",
+      "description": "Report what was played in the last two weeks: Steam only offers a fixed 14-day window. With an API key it also gives the minutes played in that window; without one it falls back to local last-played dates. Use it for \"我最近在玩什么\" or \"这两周玩了多久\".",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10,
+            "description": "最多列几款。"
+          }
+        }
+      },
+      "tags": [
+        "read"
+      ],
+      "summary": {
+        "zh": "看最近两周玩了什么、各多久。",
+        "en": "Reports what was played in the last two weeks."
+      }
+    },
+    {
+      "name": "steam_price",
+      "description": "Look up what a game costs in the user region: the current Steam price and discount, plus the historical low for the same region from IsThereAnyDeal (needs the free ITAD API key; without it only the current price is reported). Accepts a game name or an appid, and works for games that are not in the library. Use it when the user asks \"这个多少钱\", \"现在打折吗\", \"史低多少\" or whether it is worth buying now.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "游戏名或 appid。库里没有的会先去 Steam 商店搜。"
+          },
+          "refresh": {
+            "type": "boolean",
+            "default": false,
+            "description": "true=绕过本地价格缓存,现拉一次。"
+          }
+        }
+      },
+      "tags": [
+        "read"
+      ]
+    },
+    {
+      "name": "steam_friends",
+      "description": "Report which Steam friends are online and what they are playing, by default only those currently online. Off unless the user enabled it in the config; requires an API key and a public friends list. Use it only when the user asks about friends — never volunteer it.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "only_online": {
+            "type": "boolean",
+            "default": true,
+            "description": "true=只列在线/游戏中的;false=连离线的也列。"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20,
+            "description": "最多列几个人。"
+          }
+        }
+      },
+      "tags": [
+        "read"
+      ],
+      "summary": {
+        "zh": "看好友谁在线、在玩什么(默认关闭,需在配置里打开)。",
+        "en": "Reports which friends are online and in game (off by default)."
+      }
+    },
+    {
+      "name": "steam_status",
+      "description": "Report the Steam integration state: install path, account, whether an API key is configured, whether the friends switch is on, how many games were found, how many still lack names. Use it when something looks wrong or the user asks whether it works.",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "tags": [
+        "read"
+      ],
+      "summary": {
+        "zh": "看 Steam 接入状态:目录、账号、API key、好友开关、游戏数。",
+        "en": "Reports the Steam integration state."
+      }
+    }
+  ],
+  "events": [
+    {
+      "type": "steam.activity",
+      "description": {
+        "zh": "用户开游戏、换游戏或退出游戏了。",
+        "en": "The person started, switched, or quit a Steam game."
+      },
+      "trigger": "flush"
+    }
+  ],
+  "prompts": [
+    {
+      "key": "worlds.steam.envPrompt",
+      "title": "Steam · 环境提示词",
+      "role": "envPrompt",
+      "content": "【Steam】\n\n这台机器上装着 Steam,你可以读它的本地记录,知道他在玩什么、玩了多少。\n这不是猜的——是 Steam 客户端自己写下的状态,加上本机进程表的旁证。\n\n## 手边的状态(每轮拼提示词时自动刷新)\n\n{{steam.now | (现在没在玩 Steam 游戏。)}}\n{{steam.account | (还不知道他的 Steam 昵称,可以用 `steam_profile` 查一次。)}}\n\n这两行不用再调工具核对;要更细的(最近两周、成就缺哪几个、价格)再查。\n\n什么时候用:\n- 「我叫什么」「你知道我的 Steam 吗」→ `steam_profile`\n- 「我在玩什么」「这游戏我玩多久了」→ `steam_now` / `steam_playtime`\n- 「我最近在玩什么」「这两周玩了多久」→ `steam_recent`\n- 「我库里有什么」「有什么我没玩过的」→ `steam_library`\n- 「我成就打得怎么样」「X 的成就有多少」「我还差哪几个」→ `steam_achievements`\n- 「这游戏多少钱」「现在打折吗」「史低多少」「值不值得现在买」→ `steam_price`\n- 「谁在线」「XX 在玩什么」→ `steam_friends`\n- 接不上、或者他问「这个能用吗」→ `steam_status`\n\n## 说价格\n\n`steam_price` 给的是**他所在区**的价格,别换区、别换算币种。\n\n- 回执里只有现价、没有史低 → 说明没配 ITAD key。照实说「历史低价查不到」,\n  **不要**自己估一个,也不要用美元价乘汇率。\n- 有史低时,可以顺手比一句「现在比史低高 X」或「这就是史低」。\n- **不要替他下结论**。把「现价/折扣/史低/差多少」摆出来,买不买让他自己说;\n  他要是问「你觉得呢」,可以顺着他的口味聊,但别装成价格分析师。\n- 免费游戏、区域不售卖、查不到,是三种不同情况,别混成一句「没数据」。\n\n## 说他的账号\n\n`steam_profile` 给的昵称就是 Steam 上的显示名,可以直接答。但那是**账号身份**,只在私下说:\n不要主动把 SteamID64、真实名、注册时间、主页链接念出来,也不要在群聊或对外内容里提。\n他没问就别介绍自己的账号。\n\n## steam_now 会给一个可信度\n\n它不只读 Steam 注册表,还看进程表里那个游戏在不在跑、有没有可见的主窗口,\n所以结论分五种:\n\n- **✅ 确实在玩** — 三方都对上。可以当成事实说。\n- **🟡 大概在玩** — 进程确实在跑,但没抓到它的主窗口(刚启动、在加载,或窗口在别的进程里)。\n  可以说,但别把话说死。\n- **⚪ 看着像在玩,其实退了** — Steam 记着,但进程表里没有它。**这是残留值,别说他在玩**;\n  要说就说「Steam 还记着 X,不过好像已经退了」。\n- **🔵 有游戏在跑,不是 Steam 启动的** — 进程在,但 Steam 没记。可以说「看到 X 在跑」。\n- **⚪ 没在玩** — 直说。\n\n**重要**:回执里的 `verdict` 已经告诉你可信度了,照着它说话,别自己升格。\n`stale` 的时候尤其别顺着「正在玩」讲——他可能刚退出来,你说他在玩会很尴尬。\n\n## 最近两周\n\n`steam_recent` 的窗口是 Steam 固定的 **14 天**,不能自己选天数。\n\n- 回执里给了「这两周各玩了多久」,说明配了 API key,可以直说时长。\n- 只给了最后游玩日期,说明没配 key——那就别编「上周玩了三小时」,只说「最近玩过」。\n- 「我最近在玩什么」和「我总共有多少游戏」是两件事,别把累计时长说成最近的。\n\n## 好友\n\n`steam_friends` **默认是关着的**。回执说「关着」就是开关没开:直接把这句话告诉他,别猜谁在线,\n更不要编好友名字或状态。回执说「拿不到好友列表」,那是他的隐私设置或账号问题——照实说,\n不要说成「你的好友都不在线」。只有他主动问起好友,才去查。\n\n## 怎么讲\n\n- 说人话,别报 appid。时长超过 100 小时就说「一百多小时」,不用精确到分钟。\n- 他问「我玩多久了」是随口一问,一句就够;他在聊游戏本身时再多说两句。\n- 成就差一两个的时候可以替他可惜一下,这是最容易接话的点。回执带「全服 X%」时,\n  可以说这个成就稀不稀罕——数字越小越值得提。\n- 没装 API key 时,未安装过的游戏只有 appid 没有名字——照实说,别编名字。\n- 这里的时长是 Steam 的累计值,不是「这一次玩了多久」。他问「这次多久」时,\n  只能从你记得的「什么时候开的」往下算;不确定就说不知道,别编。\n\n## 边界\n\n- 这是他的游戏记录,只用来聊天。不要主动把他的游戏习惯讲给第三方,也不要写进对外内容。\n- 好友数据同理:只在对话里答他问的那一句,不要主动复述名单。\n- 玩多久是他的事,别说教。他要是自己说玩太久了,你再顺着说。\n"
+    }
+  ]
+}

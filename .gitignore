@@ -1,0 +1,9 @@
+node_modules/
+*.tgz
+.tmp/
+dist/
+
+# 本地密钥永远不要进仓库(实际存在部署目录,这里只是保险)
+.env
+.env.*
+!.env.example
