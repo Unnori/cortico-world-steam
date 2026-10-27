@@ -1,6 +1,6 @@
 {
   "name": "cortico-world-steam",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "读本机 Steam：现在在玩什么、每款玩多久、最近两周、成就进度、库里有什么，以及所在区的现价与历史最低价。只读本地记录，不改 Steam 任何文件。",
   "keywords": [
@@ -34,7 +34,7 @@
     "kind": "world",
     "api": 6,
     "displayName": "Steam",
-    "icon": "src/icon.svg",
+    "icon": "src/icon.png",
     "describe": "describe.json",
     "webUiClient": "src/webui/client.js",
     "tags": [

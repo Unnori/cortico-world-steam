@@ -342,6 +342,6 @@ src/
 ├── time.ts           按配置时区解析/显示时间
 ├── strings.ts        面板与页面文案(zh/en)
 ├── ENV_PROMPT.md     环境提示词模板
-├── icon.svg          扩展卡片图标
+├── icon.png          扩展卡片图标
 └── webui/client.js   手写的浏览器端面板
 ```
