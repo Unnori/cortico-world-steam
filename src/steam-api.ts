@@ -110,12 +110,15 @@ export type KeyProbe = 'ok' | 'denied' | 'no-player' | 'unknown';
 
 export async function probeApiKey(cfg: WebApiConfig): Promise<KeyProbe> {
   if (!cfg.apiKey || !cfg.steamId) return 'unknown';
+  const url = keyed('/ISteamUser/GetPlayerSummaries/v2/', cfg, { steamids: cfg.steamId });
+  // 和其他请求走同一条网络出口:用户配了代理就得走代理。
+  // 走裸 fetch 会绕过代理设置,直连超时被误报成「key 有问题」。
+  const result = await httpRequest(url, { timeoutMs: cfg.timeoutMs || 12000 });
+  if (!result) return 'unknown';
+  if (result.status === 401 || result.status === 403) return 'denied';
+  if (!result.ok) return 'unknown';
   try {
-    const url = keyed('/ISteamUser/GetPlayerSummaries/v2/', cfg, { steamids: cfg.steamId });
-    const response = await fetch(url, { signal: AbortSignal.timeout(cfg.timeoutMs || 12000) });
-    if (response.status === 401 || response.status === 403) return 'denied';
-    if (!response.ok) return 'unknown';
-    const data = (await response.json()) as { response?: { players?: unknown[] } };
+    const data = JSON.parse(result.text) as { response?: { players?: unknown[] } };
     const players = data?.response?.players;
     if (!Array.isArray(players)) return 'unknown';
     return players.length > 0 ? 'ok' : 'no-player';

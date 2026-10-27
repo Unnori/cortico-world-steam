@@ -44,4 +44,22 @@ describe('环境提示词的占位符', () => {
       expect(bare.test(template), `${name} 没有 | 缺省文案`).toBe(false);
     }
   });
+
+  it('模板用到的占位符都在 promptDocs.vars 里声明了', () => {
+    // 框架只拿声明过的名字去取值:漏声明时编辑器会报「未提供值,占位符将原样保留」,
+    // 而 envPromptVars() 其实照常有值——两条链各说各话。
+    const doc = makeWorld().webUi('zh').promptDocs?.find((d) => d.role === 'envPrompt');
+    expect(doc, 'World 该声明 role=envPrompt 的模板').toBeTruthy();
+
+    const declared = (doc!.vars ?? []).map((v) => v.name).sort();
+    const used = templateVarNames(readFileSync(PROMPT_FILE, 'utf8')).sort();
+    expect(declared, '模板用到的占位符都要在 vars 里声明').toEqual(used);
+  });
+
+  it('声明的每个占位符都有说明文案', () => {
+    const doc = makeWorld().webUi('zh').promptDocs?.find((d) => d.role === 'envPrompt');
+    for (const variable of doc!.vars ?? []) {
+      expect(variable.description?.trim(), `${variable.name} 缺说明`).toBeTruthy();
+    }
+  });
 });

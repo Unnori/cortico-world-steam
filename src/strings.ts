@@ -16,6 +16,8 @@ const zh = {
   panelDescription:
     '两个 key 都是选填,都落在部署的 .env 里,不写进 config.json。'
     + 'Steam key 补未安装游戏的名字、最近两周、成就、好友;ITAD key 查历史最低价(免费,登录后建个应用就有)。',
+  nowVarDescription: '此刻在玩的游戏;没在玩是空串,落到模板的缺省文案。',
+  accountVarDescription: '本机登录账号的 Steam 昵称;读不到是空串。',
 };
 
 const en: typeof zh = {
@@ -35,6 +37,8 @@ const en: typeof zh = {
     'Both keys are optional and live in the deployment .env, never in config.json. '
     + 'The Steam key fills in names for uninstalled games, the last two weeks, achievements and friends; '
     + 'the ITAD key adds historical low prices (free: sign in and register an app).',
+  nowVarDescription: 'The game being played right now; empty string when idle, so the template fallback applies.',
+  accountVarDescription: 'The Steam persona name of the signed-in account; empty string when unreadable.',
 };
 
 export function text(language: Language): typeof zh {

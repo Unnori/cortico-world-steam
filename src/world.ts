@@ -25,7 +25,6 @@ export class SteamWorld implements World {
   private kickoff: ReturnType<typeof setTimeout> | null = null;
   /** 上次看到的 appid;'' 表示没在玩 */
   private lastAppId = '';
-  private lastCheckAt = 0;
   /** 上一轮 tick 还没跑完 */
   private ticking = false;
 
@@ -219,6 +218,12 @@ export class SteamWorld implements World {
           description: t.promptDocDescription,
           path: ENV_PROMPT_FILE,
           role: 'envPrompt',
+          // 模板用到的占位符必须在这里声明:框架只拿声明过的名字去取值,
+          // 没声明的会被当成「没人报这个值」,在编辑器里报「未提供值」。
+          vars: [
+            { name: 'steam.now', description: t.nowVarDescription },
+            { name: 'steam.account', description: t.accountVarDescription },
+          ],
         },
       ],
     };
@@ -259,7 +264,6 @@ export class SteamWorld implements World {
 
     try {
       const now = Date.now();
-      this.lastCheckAt = now;
       const appid = this.currentAppId();
       if (appid === this.lastAppId) return;
 
