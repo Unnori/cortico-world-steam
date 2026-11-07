@@ -304,6 +304,16 @@ export interface AchievementItem {
   achieved: boolean;
   /** 隐藏成就:没拿到前名字/描述通常是空的 */
   hidden: boolean;
+  /**
+   * 解锁时间(epoch ms);未解锁是 0。
+   * 来自本地缓存的 `rtUnlocked`,Steam 客户端自己写的,不需要 API key。
+   */
+  unlockedAt: number;
+  /**
+   * 全服完成率百分比(0–100),即稀有度:越小越稀有。0 表示缓存没给。
+   * 来自本地缓存的 `flAchieved`,同样不需要 API key。
+   */
+  rarity: number;
 }
 
 /** 单款游戏的成就明细。 */
@@ -314,6 +324,22 @@ export interface GameAchievements {
   allUnlocked: boolean;
   /** 缓存里带回来的条目;可能不全,所以以 unlocked/total 为准 */
   items: AchievementItem[];
+}
+
+/**
+ * 成就稀有度分级。按全服完成率从稀到常见:
+ * legendary < 1% · epic < 5% · rare < 15% · uncommon < 35% · common ≥ 35%
+ * `unknown` 表示本地缓存没给完成率(冷门游戏常见)。
+ */
+export type RarityTier = 'legendary' | 'epic' | 'rare' | 'uncommon' | 'common' | 'unknown';
+
+export function rarityTier(percent: number): RarityTier {
+  if (!Number.isFinite(percent) || percent <= 0) return 'unknown';
+  if (percent < 1) return 'legendary';
+  if (percent < 5) return 'epic';
+  if (percent < 15) return 'rare';
+  if (percent < 35) return 'uncommon';
+  return 'common';
 }
 
 /**
@@ -346,6 +372,9 @@ export function readGameAchievements(steamPath: string, steamId: string, appid: 
           description: String(item?.strDescription ?? ''),
           achieved: typeof item?.bAchieved === 'boolean' ? item.bAchieved : achieved,
           hidden,
+          // rtUnlocked 是秒;未解锁的条目也有这个字段,值为 0
+          unlockedAt: Number(item?.rtUnlocked ?? 0) * 1000,
+          rarity: Number(item?.flAchieved ?? 0),
         });
       }
     };

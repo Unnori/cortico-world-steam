@@ -12,6 +12,13 @@ export const STEAM_DEFAULTS = {
   reachOut: true,
   /** 主动检测间隔(秒),1–30,默认 3 */
   pollSeconds: 3,
+  /** 解锁成就时通知:只在足够稀有才推事件,越普通越倾向于不打扰 */
+  achievementReachOut: true,
+  /**
+   * 触发门槛:全服完成率低于这个百分比(即更稀有)才报。
+   * 35 = uncommon 及以上都报;调到 15 只报 rare/epic/legendary。
+   */
+  achievementThreshold: 35,
   /** 允许查好友在线;默认关闭(读好友列表属于隐私数据) */
   friendsEnabled: false,
   /** 价格查询的地区(ISO 3166-1 alpha-2);现价与史低都按这个区算 */
@@ -29,6 +36,8 @@ export interface SteamConfigSection {
   timeoutMs: number;
   reachOut?: boolean;
   pollSeconds?: number;
+  achievementReachOut?: boolean;
+  achievementThreshold?: number;
   friendsEnabled?: boolean;
   priceCountry?: string;
   proxy?: string;

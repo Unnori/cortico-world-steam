@@ -60,6 +60,14 @@ export const STEAM: WorldDefinition<SteamConfigSection> = {
         },
         trigger: 'flush',
       },
+      {
+        type: 'steam.achievement',
+        description: {
+          zh: '用户解锁了足够稀有的 Steam 成就。事件里带全服完成率,越小的越稀有。',
+          en: 'The person unlocked rare enough Steam achievements; each carries its global completion rate, lower meaning rarer.',
+        },
+        trigger: 'flush',
+      },
     ],
   },
 };

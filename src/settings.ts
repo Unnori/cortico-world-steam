@@ -176,6 +176,21 @@ export function steamConfigGroup(): ConfigGroup {
           description: '默认关闭。打开后 steam_friends 才会读你的好友列表(需要 API key,且好友列表必须是公开的)。',
           'x-hot': true,
         },
+        'worlds.steam.achievementReachOut': {
+          type: 'boolean',
+          title: '解锁成就时通知',
+          description: '默认开启。只在本机成就缓存里比对,不需要 API key;解锁够稀有的成就才推一条事件,让桌宠能有反应。',
+          'x-hot': true,
+        },
+        'worlds.steam.achievementThreshold': {
+          type: 'integer',
+          title: '成就稀有度门槛',
+          description: '全服完成率低于这个百分比才通知(越小越稀有)。35=普通以上都报;15=只报稀有及以上;1=只报传说级。',
+          minimum: 1,
+          maximum: 100,
+          'x-suffix': '%',
+          'x-hot': true,
+        },
         'worlds.steam.proxy': {
           type: 'string',
           title: '网络代理',

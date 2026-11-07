@@ -10,6 +10,7 @@ import type { Language } from 'cortico/core/language.ts';
 import type { SteamConfigSection } from './config.ts';
 import { STEAM_PANEL_ID, ITAD_SECRET_NAME, STEAM_SECRET_NAME, invokeSteamPanel, steamConfigGroup } from './settings.ts';
 import { crossCheck, hasProcessFor } from './cross-check.ts';
+import { candidateAppIds, newUnlocks, readItems, snapshotOf, type AchievementSnapshot } from './achievements.ts';
 import { detectSteamId, detectSteamPath, readInstalled, readLoginUsers, readRegistry, toAccountId, toSteamId64, type SteamConfig } from './steam-local.ts';
 import { text } from './strings.ts';
 import { steamTools } from './tools.ts';
@@ -27,6 +28,11 @@ export class SteamWorld implements World {
   private lastAppId = '';
   /** 上一轮 tick 还没跑完 */
   private ticking = false;
+  /**
+   * 每款游戏的成就基线。缺席 = 还没看过这款,第一次只记基线、不报新闻
+   * (否则挂载那一刻会把历史上所有成就当成「刚解锁」)。
+   */
+  private achievementBaseline = new Map<string, AchievementSnapshot>();
 
   constructor(
     private readonly cfg: SteamConfigSection,
@@ -51,7 +57,7 @@ export class SteamWorld implements World {
    *
    * 只在拼系统前缀时调用(每轮都会跑),所以**只放便宜、且每轮都该在上下文里的状态**:
    *  - steam.now     现在在玩什么(读注册表 + appmanifest,60 秒缓存)
-   *  - steam.account 他的 Steam 昵称(读 loginusers.vdf,10 分钟缓存)
+   *  - steam.account 这人的 Steam 昵称(读 loginusers.vdf,10 分钟缓存)
    * 价格、成就、最近两周这类"被问了才需要"的,一律留给工具,不在这里算。
    */
   envPromptVars(): Record<string, string> {
@@ -130,7 +136,7 @@ export class SteamWorld implements World {
       if (steamPath && accountId) {
         const steamId64 = toSteamId64(accountId);
         const mine = readLoginUsers(steamPath).find((user) => user.steamId64 === steamId64);
-        if (mine?.personaName) text = `他的 Steam 昵称是「${mine.personaName}」。`;
+        if (mine?.personaName) text = `Steam 昵称:${mine.personaName}。`;
       }
     } catch {
       // 同上
@@ -142,7 +148,7 @@ export class SteamWorld implements World {
   async start(host: WorldHost): Promise<void> {
     this.host = host;
     if (this.timer) return;
-    // 开局先记下当前状态,别一挂载就报「他开游戏了」
+    // 开局先记下当前状态,别一挂载就报「开游戏了」
     this.lastAppId = this.currentAppId();
     // 主动检测要快:注册表读一次 76ms,3 秒一轮不算负担
     this.timer = setInterval(() => this.tick(), this.pollMs());
@@ -253,58 +259,136 @@ export class SteamWorld implements World {
     }
   }
 
-  /** 看有没有换游戏;换了就推一条事件。 */
+  /** 每轮的活:开/换游戏事件与成就检测各自独立,一个关掉或失败不影响另一个。 */
   private tick(): void {
-    const host = this.host;
-    if (!host) return;
-    if (this.cfg.reachOut === false) return;
+    if (!this.host) return;
     // 上一轮还在跑就跳过,别叠
     if (this.ticking) return;
     this.ticking = true;
-
     try {
-      const now = Date.now();
-      const appid = this.currentAppId();
-      if (appid === this.lastAppId) return;
-
-      const previous = this.lastAppId;
-      this.lastAppId = appid;
-
-      // 注册表说「开了」不算数,得看进程在不在——退出后 RunningAppID 会残留
-      if (appid && !this.isRunning(appid)) return;
-
-      const steamPath = detectSteamPath({
-        steamPath: (this.cfg.steamPath ?? '').trim(),
-        steamId: '',
-        apiKey: '',
-        timeoutMs: 8000,
-      });
-      const installed = steamPath ? readInstalled(steamPath) : new Map<string, { name: string; dir: string }>();
-      const nameOf = (id: string): string => {
-        const name = installed.get(id)?.name;
-        return name ? `${name}(appid ${id})` : `appid ${id}`;
-      };
-
-      const body = (() => {
-        if (!appid) {
-          return `[Steam] 退出了 Steam 游戏${previous ? `(${nameOf(previous)})` : ''}。`;
+      // 两者各有开关:关掉 reachOut 不该连坐成就通知,反之亦然
+      if (this.cfg.reachOut !== false) {
+        try {
+          this.tickActivity();
+        } catch {
+          // 读注册表失败就跳过这一轮
         }
-        const prefix = previous ? '换了游戏' : '开游戏了';
-        return [
-          `[Steam] ${prefix}:${nameOf(appid)}。`,
-          `时间 ${fmtDateTime(now, this.timezone)}`,
-          '这是他本机 Steam 的实际状态,进程也确认在跑。要不要搭话、说什么,按你自己的性子来;不想说就放着。',
-        ].join('\n');
-      })();
-
-      host.pushDeferred?.(
-        { type: 'steam.activity', origin: 'internal', render: () => body },
-        { trigger: 'flush' },
-      );
-    } catch {
-      // 读注册表失败就跳过这一轮
+      }
+      if (this.cfg.achievementReachOut !== false) {
+        try {
+          this.checkAchievements();
+        } catch {
+          // 读成就缓存失败就跳过
+        }
+      }
     } finally {
       this.ticking = false;
+    }
+  }
+
+  /** 看有没有换游戏;换了就推一条事件。 */
+  private tickActivity(): void {
+    const host = this.host;
+    if (!host) return;
+
+    const now = Date.now();
+    const appid = this.currentAppId();
+    if (appid === this.lastAppId) return;
+
+    const previous = this.lastAppId;
+    this.lastAppId = appid;
+
+    // 注册表说「开了」不算数,得看进程在不在——退出后 RunningAppID 会残留
+    if (appid && !this.isRunning(appid)) return;
+
+    const steamPath = detectSteamPath({
+      steamPath: (this.cfg.steamPath ?? '').trim(),
+      steamId: '',
+      apiKey: '',
+      timeoutMs: 8000,
+    });
+    const installed = steamPath ? readInstalled(steamPath) : new Map<string, { name: string; dir: string }>();
+    const nameOf = (id: string): string => {
+      const name = installed.get(id)?.name;
+      return name ? `${name}(appid ${id})` : `appid ${id}`;
+    };
+
+    const body = (() => {
+      if (!appid) {
+        return `[Steam] 退出了 Steam 游戏${previous ? `(${nameOf(previous)})` : ''}。`;
+      }
+      const prefix = previous ? '换了游戏' : '开游戏了';
+      return [
+        `[Steam] ${prefix}:${nameOf(appid)}。`,
+        `时间 ${fmtDateTime(now, this.timezone)}`,
+        '这是对方本机 Steam 的实际状态,进程也确认在跑。要不要搭话、说什么,按你自己的性子来;不想说就放着。',
+      ].join('\n');
+    })();
+
+    host.pushDeferred?.(
+      { type: 'steam.activity', origin: 'internal', render: () => body },
+      { trigger: 'flush' },
+    );
+  }
+
+  /**
+   * 看有没有新解锁的成就,够稀有就推一条事件。
+   *
+   * Steam 只在退出或换游戏时把成就写回磁盘,所以这里查的永远是「已写回的」;
+   * 事件里报的解锁时间来自缓存里的 `rtUnlocked`,不是检测时刻。
+   * 越普通的越倾向于不打扰:`achievementThreshold` 以上的完成率直接沉默。
+   */
+  private checkAchievements(): void {
+    if (this.cfg.achievementReachOut === false) return;
+    const host = this.host;
+    if (!host) return;
+
+    const local = this.localCfg();
+    const steamPath = detectSteamPath(local);
+    if (!steamPath) return;
+    const accountId = toAccountId(detectSteamId(local, steamPath));
+    if (!accountId) return;
+
+    // 正在玩的那款 + 最近写过成就缓存的那批(退出游戏时才会写回)
+    const windowMs = Math.max(10 * 60_000, this.pollMs() * 4);
+    const appids = candidateAppIds(steamPath, accountId, this.currentAppId(), windowMs);
+    if (appids.length === 0) return;
+
+    const threshold = Number(this.cfg.achievementThreshold);
+    const cutoff = Number.isFinite(threshold) && threshold > 0 ? threshold : 35;
+    const installed = readInstalled(steamPath);
+    const now = Date.now();
+
+    for (const appid of appids) {
+      const items = readItems(steamPath, accountId, appid);
+      if (!items) continue;
+
+      const baseline = this.achievementBaseline.get(appid);
+      const fresh = newUnlocks(appid, installed.get(appid)?.name ?? '', items, baseline, now, windowMs);
+      // 每次都比对完就更新基线:无论报不报,「已经见过」的都不再算新闻
+      this.achievementBaseline.set(appid, snapshotOf(items));
+
+      if (!baseline) continue;                       // 首次只建基线
+      // 只要够稀有的:完成率低于门槛(越小越稀有);缓存没给完成率的不算稀有,不打扰
+      const worth = fresh.filter((item) => item.rarity > 0 && item.rarity < cutoff);
+      if (worth.length === 0) continue;
+
+      const lines = worth
+        .sort((a, b) => a.rarity - b.rarity)
+        .map((item) => `· ${item.name}【${item.tier} · 全服 ${item.rarity.toFixed(1)}%】`);
+      const game = installed.get(appid)?.name;
+      const body = [
+        `[Steam] 解锁了 ${worth.length} 个成就${game ? `(${game})` : ''},按稀有度从稀到常见:`,
+        ...lines,
+        `时间 ${fmtDateTime(now, this.timezone)}`,
+        '这是对方本机 Steam 的真实记录。越稀有越值得演,越普通越该轻描淡写;' +
+          '想表示就叫桌宠做个表情或动作。要不要搭话、说什么,按你自己的性子来;不想说就放着。',
+      ].join('\n');
+
+      host.pushDeferred?.(
+        { type: 'steam.achievement', origin: 'internal', render: () => body },
+        { trigger: 'flush' },
+      );
     }
   }
 
