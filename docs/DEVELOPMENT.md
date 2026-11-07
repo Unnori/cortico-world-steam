@@ -271,7 +271,7 @@ export default { panels: { apikey: { mount(ctx) { /* ctx.ui / ctx.invoke */ } } 
 | 占位符 | 内容 | 何时算 |
 |---|---|---|
 | `steam.now` | `现在在玩 X。` | 每轮,文本缓存 60 秒 |
-| `steam.account` | `他的 Steam 昵称是「X」。` | 每轮,缓存 10 分钟 |
+| `steam.account` | `Steam 昵称:X。` | 每轮,缓存 10 分钟 |
 
 三条硬规则:
 
@@ -283,7 +283,7 @@ export default { panels: { apikey: { mount(ctx) { /* ctx.ui / ctx.invoke */ } } 
 
 什么时候该做占位符、什么时候不该:
 
-- 该做:每轮对话都必须知道的**短状态**(他的昵称、现在在玩什么、亲密度、学过几条)。
+- 该做:每轮对话都必须知道的**短状态**(这人的昵称、现在在玩什么、亲密度、学过几条)。
 - 不该做:被问了才需要的(价格、成就明细、最近两周)——`envPromptVars()` **每轮都会跑**,
   放重活等于给每条回复加延迟。这类用工具,按需查。
 
@@ -322,7 +322,7 @@ gh issue create --repo Pal-AI-Lab/cortico-extensions \
   --title "[tags] cortico-world-steam" --body-file request.txt
 ```
 
-私有分发不必上 npm:`.tgz` 直接给用户,让他在扩展页填绝对路径;或者把解压后的目录填进去做 link。
+私有分发不必上 npm:`.tgz` 直接给用户,让人在扩展页填绝对路径;或者把解压后的目录填进去做 link。
 
 ## 目录
 
